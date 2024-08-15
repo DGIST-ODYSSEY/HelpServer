@@ -16,5 +16,5 @@ public class Board {
     private String content;
     @Lob
     private byte[] image;
-    private int likes;
+    private String location;
 }

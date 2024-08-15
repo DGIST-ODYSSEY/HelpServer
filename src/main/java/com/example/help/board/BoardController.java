@@ -27,29 +27,23 @@ public class BoardController {
     public ResponseEntity<Map<String, Object>> write(
             @RequestBody Board board,
             @RequestParam(value = "image", required = false) MultipartFile imageFile) {
+        board.setLocation("대구시 달성군");
 
-        // Check if an image file is provided
         if (imageFile != null && !imageFile.isEmpty()) {
             try {
-                // Convert MultipartFile to byte array
                 byte[] imageBytes = imageFile.getBytes();
                 board.setImage(imageBytes);
             } catch (IOException e) {
                 Map<String, Object> errorResponse = new HashMap<>();
                 errorResponse.put("success", false);
-                errorResponse.put("message", "Image upload failed");
                 return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
             }
         }
 
-        // Save the board entry to the database
         boardRepository.save(board);
 
-        // Prepare and return the response
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("message", "Board entry saved successfully");
-        response.put("board", board);
 
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
@@ -79,10 +73,14 @@ public class BoardController {
                         .contentType(MediaType.IMAGE_JPEG)
                         .body(bis);
             } else {
-                return new ResponseEntity<>("Image not found", HttpStatus.NOT_FOUND);
+                Map<String, Object> response = new HashMap<>();
+                response.put("success", false);
+                return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
             }
         } else {
-            return new ResponseEntity<>("Board entry not found", HttpStatus.NOT_FOUND);
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
         }
     }
 }
