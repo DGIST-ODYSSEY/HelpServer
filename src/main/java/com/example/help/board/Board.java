@@ -1,9 +1,6 @@
 package com.example.help.board;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -17,5 +14,7 @@ public class Board {
     private Long id;
     private String title;
     private String content;
-    private String image;
+    @Lob
+    private byte[] image;
+    private int likes;
 }

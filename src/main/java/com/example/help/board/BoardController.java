@@ -1,17 +1,14 @@
 package com.example.help.board;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 
 @RestController
@@ -26,23 +23,17 @@ public class BoardController {
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
-    @Value("${image.upload.dir}")
-    private String imageUploadDir;
-
     @PostMapping("/write")
-    public ResponseEntity<Map<String, Object>> write(@RequestParam("title") String title,
-                                                     @RequestParam("content") String content,
-                                                     @RequestParam(value = "image", required = false) MultipartFile imageFile) {
-        Board board = new Board();
-        board.setTitle(title);
-        board.setContent(content);
+    public ResponseEntity<Map<String, Object>> write(
+            @RequestBody Board board,
+            @RequestParam(value = "image", required = false) MultipartFile imageFile) {
 
+        // Check if an image file is provided
         if (imageFile != null && !imageFile.isEmpty()) {
-            String fileName = StringUtils.cleanPath(Objects.requireNonNull(imageFile.getOriginalFilename()));
-            Path filePath = Paths.get(imageUploadDir + File.separator + fileName);
             try {
-                imageFile.transferTo(filePath.toFile());
-                board.setImage("/images/" + fileName);
+                // Convert MultipartFile to byte array
+                byte[] imageBytes = imageFile.getBytes();
+                board.setImage(imageBytes);
             } catch (IOException e) {
                 Map<String, Object> errorResponse = new HashMap<>();
                 errorResponse.put("success", false);
@@ -51,8 +42,10 @@ public class BoardController {
             }
         }
 
+        // Save the board entry to the database
         boardRepository.save(board);
 
+        // Prepare and return the response
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
         response.put("message", "Board entry saved successfully");
@@ -67,6 +60,27 @@ public class BoardController {
 
         if (result.isPresent()) {
             return new ResponseEntity<>(result.get(), HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>("Board entry not found", HttpStatus.NOT_FOUND);
+        }
+    }
+
+    @GetMapping("/images/{id}")
+    public ResponseEntity<?> getImage(@PathVariable Long id) {
+        Optional<Board> result = boardRepository.findById(id);
+
+        if (result.isPresent()) {
+            Board board = result.get();
+            byte[] imageBytes = board.getImage();
+
+            if (imageBytes != null && imageBytes.length > 0) {
+                ByteArrayInputStream bis = new ByteArrayInputStream(imageBytes);
+                return ResponseEntity.ok()
+                        .contentType(MediaType.IMAGE_JPEG)
+                        .body(bis);
+            } else {
+                return new ResponseEntity<>("Image not found", HttpStatus.NOT_FOUND);
+            }
         } else {
             return new ResponseEntity<>("Board entry not found", HttpStatus.NOT_FOUND);
         }
